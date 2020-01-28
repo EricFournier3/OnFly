@@ -1,3 +1,4 @@
+#!/bin/bash
 EXEC="/data/Applications/Trimmomatic/Trimmomatic-0.36/trimmomatic-0.36.jar"
 FASTQ_BRUT_PATH="/data/Runs/20200115_ctrl-pulsenet/pulsenet/FASTQ_BRUT_20200123/"
 FASTQ_TRIMMO_PATH="/data/Runs/20200115_ctrl-pulsenet/pulsenet/FASTQ_CLEAN_TRIMMOMATIC_20200123/"
