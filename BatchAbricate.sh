@@ -22,7 +22,7 @@ for fasta in  $(ls ${SPADES_ASSEMBLY_IN}*.fasta)
   echo "db is ${db}"
   OUT=${OUT_SAMPLE}${db}"/"
   mkdir -p $OUT 
-  abricate_cmd="abricate --thread 8 --db $db $fasta > ${OUT}res.tab"
+  abricate_cmd="abricate --thread 8 --db $db  --minid 85 --mincov 90 $fasta > ${OUT}res.tab"
   eval $abricate_cmd
   sudo chmod 777 ${OUT}res.tab
  done
@@ -53,8 +53,8 @@ for fasta in  $(ls ${PLASMIDSPADES_ASSEMBLY_IN}*.fasta)
   do
   OUT=${OUT_SAMPLE}${db}"/"
   mkdir -p $OUT 
-  abricate_cmd="abricate --thread 8 --db $db $fasta > ${OUT}res.tab"
-  #echo $abricate_cmd
+  abricate_cmd="abricate --thread 8 --db $db --minid 85 --mincov 90  $fasta > ${OUT}res.tab"
+  #echo $abricate_cmd  
   eval $abricate_cmd
   sudo chmod 777 ${OUT}res.tab
  done
@@ -84,7 +84,7 @@ for fasta in  $(ls ${SPADES_ASSEMBLY_PLASMIDFILTERED_IN}*.fasta)
   do
   OUT=${OUT_SAMPLE}${db}"/"
   mkdir -p $OUT 
-  abricate_cmd="abricate --thread 8 --db $db $fasta > ${OUT}res.tab"
+  abricate_cmd="abricate --thread 8 --db $db --minid 85 --mincov 90  $fasta > ${OUT}res.tab"
   #echo $abricate_cmd
   eval $abricate_cmd
   sudo chmod 777 ${OUT}res.tab
