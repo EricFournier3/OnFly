@@ -6,7 +6,7 @@ suppressMessages(library(tidyverse))
 library(tidyverse)
 
 my_dat <- read_tsv(in_dat, col_names = TRUE)
-my_dat2 <- my_dat %>% group_by(PlasmidAcc) %>% summarise(AlignmentLengthSum = sum(AlignmentLength), PlasmidLength = max(PlasmidLength))
+my_dat2 <- my_dat %>% group_by(PlasmidAcc) %>% summarise(AlignmentLengthSum = sum(AlignmentLength), PlasmidLength = max(PlasmidLength), Cov = (AlignmentLengthSum/PlasmidLength)*100000) %>% filter(Cov > 50000)
 
 pdf(NULL)
 

@@ -20,9 +20,9 @@ MakeBlastPlasmidCoverage(){
 BlastPlasmid(){ 
 	   base_dir=$1
 	   blast_dir=${base_dir}"BLAST/"
-	   #mkdir ${blast_dir}
+	   mkdir ${blast_dir}
 	   blast_cmd="blastn -query ${base_dir}SPADES/contigs_filtered.fasta -db ${PLASMID_BLAST_DB} -html -num_alignments 5 -num_descriptions 5 -out ${blast_dir}res.html"
-	   #eval $blast_cmd
+	   eval $blast_cmd
 
 	   blastn -query ${base_dir}SPADES/contigs_filtered.fasta -db /data/Databases/PLASMIDSEEKER/blast_plasmid_db_20200205 -num_alignments 10  -outfmt "6 qseqid stitle slen length pident qstart qend sstart send evalue bitscore nident mismatch qcovs" 2>/dev/null  > ${blast_dir}"res.tab"
 	  
@@ -45,18 +45,20 @@ AssembPlasmid(){
          do
          echo ">>>>>>>>>> ${cluster_dir} Assembly"
 	 spades_out=${cluster_dir}"SPADES/"
-	 spades_cmd="spades.py --pe1-1 ${cluster_dir}PlasmidReads_R1.fastq.gz --pe1-2 ${cluster_dir}PlasmidReads_R2.fastq.gz -m 200 -k 77,99,127 --careful -t 30 -o ${cluster_dir}SPADES >/dev/null"
-         #eval $spades_cmd
+	 #spades_cmd="spades.py --pe1-1 ${cluster_dir}PlasmidReads_R1.fastq.gz --pe1-2 ${cluster_dir}PlasmidReads_R2.fastq.gz -m 200 -k 77,99,127 --careful -t 30 -o ${cluster_dir}SPADES >/dev/null"
+	 spades_cmd="spades.py --s1 ${cluster_dir}PlasmidReads_R1R2.fastq.gz -m 200 -k 77,99,127 --careful -t 30 -o ${cluster_dir}SPADES >/dev/null"
+         eval $spades_cmd
 	 #rm ${cluster_dir}PlasmidReads_R1.fastq.gz ${cluster_dir}PlasmidReads_R2.fastq.gz
+	 rm ${cluster_dir}PlasmidReads_R1R2.fastq.gz
          if [ -f ${cluster_dir}SPADES/contigs.fasta ]
 	  then
-	  #seqkit fx2tab ${cluster_dir}SPADES/contigs.fasta | awk -v min_l=3000 'BEGIN{FS="_"}{if($4>=min_l){print $0}}' | seqkit tab2fx > ${cluster_dir}SPADES/contigs_filtered.fasta 2>/dev/null
+	  seqkit fx2tab ${cluster_dir}SPADES/contigs.fasta | awk -v min_l=1000 'BEGIN{FS="_"}{if($4>=min_l){print $0}}' | seqkit tab2fx > ${cluster_dir}SPADES/contigs_filtered.fasta 2>/dev/null
 	  
           state=$?
 	  #echo "State is ${state}"
 	  if [ $state -ne 0 ]
 	   then
-	   echo "No plasmid contig over 2999bp"
+	   echo "No plasmid contig over 999bp"
 	  else
 	   BlastPlasmid $cluster_dir
 	  fi
@@ -87,15 +89,18 @@ MapOnPlasmid(){
 	 bam_sort_cmd="samtools sort ${cluster_dir}out_onlymap.bam ${cluster_dir}out_onlymap_sort"
 	 #eval $bam_sort_cmd
 	 bam_sort_byname_cmd="samtools sort ${cluster_dir}out_onlymap_sort.bam ${cluster_dir}out_onlymap_sort_byname"
-	 eval $bam_sort_byname_cmd
+	 #eval $bam_sort_byname_cmd
 	 bam_index_cmd="samtools index ${cluster_dir}out_onlymap_sort.bam"
 	 #eval $bam_index_cmd
-	 extract_paired_fastq_cmd="bedtools bamtofastq -i ${cluster_dir}out_onlymap_sort_byname.bam -fq ${cluster_dir}PlasmidReads_R1.fastq -fq2 ${cluster_dir}PlasmidReads_R2.fastq 2>/dev/null"        
+	 
+	 #il semble y avoir un probleme avec le xtractio paired end; trop peu de reads par rapport a la couverture
+	 #extract_paired_fastq_cmd="bedtools bamtofastq -i ${cluster_dir}out_onlymap_sort_byname.bam -fq ${cluster_dir}PlasmidReads_R1.fastq -fq2 ${cluster_dir}PlasmidReads_R2.fastq 2>/dev/null"        
+	 extract_paired_fastq_cmd="bedtools bamtofastq -i ${cluster_dir}out_onlymap_sort_byname.bam -fq ${cluster_dir}PlasmidReads_R1R2.fastq  2>/dev/null"        
 	 eval $extract_paired_fastq_cmd
 	 fastq_stat_file=${cluster_dir}FastqStat.txt
 	 fastq_stat_cmd="seqkit stats ${cluster_dir}*.fastq -T -a | csvtk pretty -t > ${fastq_stat_file}"
-	 #eval $fastq_stat_cmd
-  	 zip_cmd="gzip ${cluster_dir}PlasmidReads_R1.fastq ${cluster_dir}PlasmidReads_R2.fastq"	 
+	 eval $fastq_stat_cmd
+  	 zip_cmd="gzip ${cluster_dir}PlasmidReads_R1R2.fastq" 	 
 	 eval $zip_cmd
 	 #rm ${cluster_dir}{out_map.bam,out_map.sam,out_onlymap.bam,out_onlymap_sort_byname.bam}
 	done
@@ -116,7 +121,7 @@ ExtractPlamidicReads(){
 	   echo "Cluster is ${cluster}"
 	   #mkdir ${BASEDIR_OUT}${sample}"/"${cluster}
 	   spades_out=${BASEDIR_OUT}${sample}"/"${cluster}"/SPADES/"
-	   #mkdir $spades_out
+	   mkdir $spades_out
 	 elif [[ ! "$line" =~ "PLASMID CLUSTER" ]]
 	  then
 	  #echo "HIT IS $line"
@@ -147,7 +152,7 @@ for fastq in $(ls ${FASTQ_TRIMMO_PATH}*_R1_PAIR.fastq.gz)
  #eval ${cmd}
  #rm ${out}${SAMPLE_NAME}".fastq" ${out}*"_distr" ${out}*".list"  
  
- #ExtractPlamidicReads $SAMPLE_NAME
+ ExtractPlamidicReads $SAMPLE_NAME
  AssembPlasmid ${SAMPLE_NAME}
 
 done
