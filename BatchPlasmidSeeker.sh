@@ -8,18 +8,33 @@ REF="/data/Databases/PLASMIDSEEKER/EcloacGenomeCP020089.fasta"
 PLASMID_DB_FILE="/data/Databases/PLASMIDSEEKER/plasmid_db_20200205.fna"
 PLASMID_BLAST_DB="/data/Databases/PLASMIDSEEKER/blast_plasmid_db_20200205"
 
-#filter contig
-#TODO blast des contig filter sur /data/Databases/PLASMIDSEEKER/blast_plasmid_db_20200205 
-#blastn -query NODE_1.fasta  -db /data/Databases/PLASMIDSEEKER/blast_plasmid_db_20200205 -html -num_alignments 5 -num_descriptions 5 -out res_blast.html
+MakeBlastPlasmidCoverage(){
+	basedir=$1
+	out_pdf=${basedir}"BlastHistCov.pdf"
+	in_dat=${basedir}"res_sort.tab" 
+	histogram_cov_cmd="Rscript MakeBlastCoverageHist.R ${in_dat} ${out_pdf}"
+	eval $histogram_cov_cmd
+}
 
-#TODO REMOVE FASTQ
 
-BlastPlasmid(){
+BlastPlasmid(){ 
 	   base_dir=$1
 	   blast_dir=${base_dir}"BLAST/"
-	   mkdir ${blast_dir}
-	   blast_cmd="blastn -query ${base_dir}SPADES/contigs_filtered.fasta -db ${PLASMID_BLAST_DB} -html -num_alignments 2 -num_descriptions 5 -out ${blast_dir}res.html"
-	   eval $blast_cmd
+	   #mkdir ${blast_dir}
+	   blast_cmd="blastn -query ${base_dir}SPADES/contigs_filtered.fasta -db ${PLASMID_BLAST_DB} -html -num_alignments 5 -num_descriptions 5 -out ${blast_dir}res.html"
+	   #eval $blast_cmd
+
+	   blastn -query ${base_dir}SPADES/contigs_filtered.fasta -db /data/Databases/PLASMIDSEEKER/blast_plasmid_db_20200205 -num_alignments 10  -outfmt "6 qseqid stitle slen length pident qstart qend sstart send evalue bitscore nident mismatch qcovs" 2>/dev/null  > ${blast_dir}"res.tab"
+	  
+	   sed -i '1 i\Contig\tPlasmidName\tPlasmidLength\tAlignmentLength\tPercIdent\tContigStart\tContigLength\tPlasmidStart\tPlasmidEnd\tEvalue\tScore\tNumberIdent\tNumbermismatch\tContigCover' ${blast_dir}"res.tab"
+
+	   csvtk mutate  -t -f PlasmidName -n Genus -p "^\S+ (\w+)" ${blast_dir}"res.tab" > ${blast_dir}"res2.tab"
+	   csvtk mutate -t -f PlasmidName -n PlasmidAcc -p "(^\S+) \w+" ${blast_dir}"res2.tab" > ${blast_dir}"res3.tab"
+	   csvtk sort -t -k Genus -k PlasmidName -k AlignmentLength:rn ${blast_dir}"res3.tab" > ${blast_dir}"res_sort.tab"
+
+	   rm ${blast_dir}{"res2.tab","res.tab","res3.tab"}
+
+	   MakeBlastPlasmidCoverage $blast_dir
 }
 
 
@@ -31,11 +46,11 @@ AssembPlasmid(){
          echo ">>>>>>>>>> ${cluster_dir} Assembly"
 	 spades_out=${cluster_dir}"SPADES/"
 	 spades_cmd="spades.py --pe1-1 ${cluster_dir}PlasmidReads_R1.fastq.gz --pe1-2 ${cluster_dir}PlasmidReads_R2.fastq.gz -m 200 -k 77,99,127 --careful -t 30 -o ${cluster_dir}SPADES >/dev/null"
-         eval $spades_cmd
-	 rm ${cluster_dir}PlasmidReads_R1.fastq.gz ${cluster_dir}PlasmidReads_R2.fastq.gz
+         #eval $spades_cmd
+	 #rm ${cluster_dir}PlasmidReads_R1.fastq.gz ${cluster_dir}PlasmidReads_R2.fastq.gz
          if [ -f ${cluster_dir}SPADES/contigs.fasta ]
 	  then
-	  seqkit fx2tab ${cluster_dir}SPADES/contigs.fasta | awk -v min_l=3000 'BEGIN{FS="_"}{if($4>=min_l){print $0}}' | seqkit tab2fx > ${cluster_dir}SPADES/contigs_filtered.fasta 2>/dev/null
+	  #seqkit fx2tab ${cluster_dir}SPADES/contigs.fasta | awk -v min_l=3000 'BEGIN{FS="_"}{if($4>=min_l){print $0}}' | seqkit tab2fx > ${cluster_dir}SPADES/contigs_filtered.fasta 2>/dev/null
 	  
           state=$?
 	  #echo "State is ${state}"
@@ -60,27 +75,29 @@ MapOnPlasmid(){
 	 plasmid_ref=${cluster_dir}"PlasmidRef.fasta"
 	 echo "Plasmid ref is ${plasmid_ref}"
 	 ref_index_cmd="smalt index -k 20 -s 4 ${plasmid_ref} ${plasmid_ref}"
-	 eval ${ref_index_cmd} 
+	 #eval ${ref_index_cmd} 
 	 fastq_r1=${FASTQ_TRIMMO_PATH}${sample}"_R1_PAIR.fastq.gz"
 	 fastq_r2=${FASTQ_TRIMMO_PATH}${sample}"_R2_PAIR.fastq.gz"
          map_cmd="smalt map -f sam -l pe -y 0.80 -i 700 -o ${cluster_dir}out_map.sam ${plasmid_ref} ${fastq_r1} ${fastq_r2} >/dev/null"
-         eval $map_cmd
+         #eval $map_cmd
 	 sam_to_bam_cmd="samtools view -bS ${cluster_dir}out_map.sam > ${cluster_dir}out_map.bam"
-	 eval $sam_to_bam_cmd
+	 #eval $sam_to_bam_cmd
          extract_onlymap_cmd="samtools view -b -F 260 ${cluster_dir}out_map.bam > ${cluster_dir}out_onlymap.bam"
-	 eval $extract_onlymap_cmd
+	 #eval $extract_onlymap_cmd
 	 bam_sort_cmd="samtools sort ${cluster_dir}out_onlymap.bam ${cluster_dir}out_onlymap_sort"
-	 eval $bam_sort_cmd
+	 #eval $bam_sort_cmd
+	 bam_sort_byname_cmd="samtools sort ${cluster_dir}out_onlymap_sort.bam ${cluster_dir}out_onlymap_sort_byname"
+	 eval $bam_sort_byname_cmd
 	 bam_index_cmd="samtools index ${cluster_dir}out_onlymap_sort.bam"
-	 eval $bam_index_cmd
-	 extract_paired_fastq_cmd="bedtools bamtofastq -i ${cluster_dir}out_onlymap_sort.bam -fq ${cluster_dir}PlasmidReads_R1.fastq -fq2 ${cluster_dir}PlasmidReads_R2.fastq 2>/dev/null"
+	 #eval $bam_index_cmd
+	 extract_paired_fastq_cmd="bedtools bamtofastq -i ${cluster_dir}out_onlymap_sort_byname.bam -fq ${cluster_dir}PlasmidReads_R1.fastq -fq2 ${cluster_dir}PlasmidReads_R2.fastq 2>/dev/null"        
 	 eval $extract_paired_fastq_cmd
 	 fastq_stat_file=${cluster_dir}FastqStat.txt
 	 fastq_stat_cmd="seqkit stats ${cluster_dir}*.fastq -T -a | csvtk pretty -t > ${fastq_stat_file}"
-	 eval $fastq_stat_cmd
+	 #eval $fastq_stat_cmd
   	 zip_cmd="gzip ${cluster_dir}PlasmidReads_R1.fastq ${cluster_dir}PlasmidReads_R2.fastq"	 
 	 eval $zip_cmd
-	 rm ${cluster_dir}{out_map.bam,out_map.sam,out_onlymap.bam}
+	 #rm ${cluster_dir}{out_map.bam,out_map.sam,out_onlymap.bam,out_onlymap_sort_byname.bam}
 	done
 
 }
@@ -96,18 +113,20 @@ ExtractPlamidicReads(){
 	   cluster=""
 	   cluster=${line#PLASMID CLUSTER }
 	   cluster="Cluster_"${cluster}
-	   #echo "Cluster is ${cluster}"
-	   mkdir ${BASEDIR_OUT}${sample}"/"${cluster}
+	   echo "Cluster is ${cluster}"
+	   #mkdir ${BASEDIR_OUT}${sample}"/"${cluster}
 	   spades_out=${BASEDIR_OUT}${sample}"/"${cluster}"/SPADES/"
-	   mkdir $spades_out
+	   #mkdir $spades_out
 	 elif [[ ! "$line" =~ "PLASMID CLUSTER" ]]
 	  then
 	  #echo "HIT IS $line"
           seq_desc=""
 	  seq_desc=$line
 	  seq_desc=${seq_desc/>/}
-	  #echo "Seq desc is ${seq_desc}"
-	  seqkit grep -n -r -p "${seq_desc}" ${PLASMID_DB_FILE} >>  ${BASEDIR_OUT}${sample}"/"${cluster}"/PlasmidRef.fasta"
+	 
+	  seq_desc=${seq_desc//\(/\\\(}
+	  seq_desc=${seq_desc//\)/\\\)}
+	  #seqkit grep -n -r -p "${seq_desc}" ${PLASMID_DB_FILE} >>  ${BASEDIR_OUT}${sample}"/"${cluster}"/PlasmidRef.fasta"
 	 fi
 	done < <(sed -n '/CLUSTER/,/P-VALUE/p'  ${BASEDIR_OUT}${sample}"/out.txt"  | awk 'BEGIN{FS="\t"};/CLUSTER/{print $2};/.list$/{print $6}')
 
@@ -121,14 +140,14 @@ for fastq in $(ls ${FASTQ_TRIMMO_PATH}*_R1_PAIR.fastq.gz)
  SAMPLE_NAME=$(echo $SAMPLE_NAME | cut -d '_' -f 1)
  echo ">>>>>>>>>>> Work on ${SAMPLE_NAME}"
  out=${BASEDIR_OUT}${SAMPLE_NAME}/
- mkdir $out
- cat ${FASTQ_TRIMMO_PATH}"${SAMPLE_NAME}"*".fastq.gz" > ${out}${SAMPLE_NAME}".fastq.gz"
- gunzip ${out}${SAMPLE_NAME}".fastq.gz"
+ #mkdir $out
+ #cat ${FASTQ_TRIMMO_PATH}"${SAMPLE_NAME}"*".fastq.gz" > ${out}${SAMPLE_NAME}".fastq.gz"
+ #gunzip ${out}${SAMPLE_NAME}".fastq.gz"
  cmd="${EXEC} -i  ${out}${SAMPLE_NAME}.fastq -o ${out}out.txt -d ${DB} -b ${REF} -k 1>${out}log.txt 2>&1"
- eval ${cmd}
- rm ${out}${SAMPLE_NAME}".fastq" ${out}*"_distr" ${out}*".list"  
+ #eval ${cmd}
+ #rm ${out}${SAMPLE_NAME}".fastq" ${out}*"_distr" ${out}*".list"  
  
- ExtractPlamidicReads $SAMPLE_NAME
+ #ExtractPlamidicReads $SAMPLE_NAME
  AssembPlasmid ${SAMPLE_NAME}
 
 done
