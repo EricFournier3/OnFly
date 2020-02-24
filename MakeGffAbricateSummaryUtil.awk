@@ -18,7 +18,7 @@ NR>1{
         ;
 	{
 	#print $12" -- "$15" -- "antibio_name
-	print $2"\t"$12"\tgene\t"$3"\t"$4"\t"$11"\t"$5"\t1\tID="$13"-"NR";Name="$6";cov="$10";antibio="antibio_name
+	print $2"\t"$12"\tgene\t"$3"\t"$4"\t"$11"\t"$5"\t1\tID="$13"-"$12"-"NR";Name="$6";cov="$10";antibio="antibio_name
 	}
 
 }
