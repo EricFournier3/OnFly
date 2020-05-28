@@ -110,7 +110,7 @@ map(){
       eval ${cmd_smalt_unpaired}      
 
 
-      cmd_smalt_paired="smalt map  -y $IDENTITY_THRESHOLD  -f sam -l pe -i 500 -o ${prefix_map}_paired.sam  ${sample}.notCombined_1.fastq.gz ${sample}.notCombined_2.fastq.gz" 
+      cmd_smalt_paired="smalt map  -y $IDENTITY_THRESHOLD  -f sam -l pe -i 500 -o ${prefix_map}_paired.sam  ${fasta_myref}   ${sample}.notCombined_1.fastq.gz ${sample}.notCombined_2.fastq.gz" 
       eval ${cmd_smalt_paired}
        
 
