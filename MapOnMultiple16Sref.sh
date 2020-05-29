@@ -1,28 +1,7 @@
 #!/bin/bash
 
 <<COM
-TODO CNEG
-TODO FLASH
-TODO MAP SUR REFERENCE SEPAREMENT
-
-flash -z -m 10 -o L00258931 -d . /data/Runs/20200514_ctrl-metag-16s-blasto/16s/3_FASTQ_CLEAN_TRIMMOMATIC/16S-L00258931-16S_R1_PAIR.fastq.gz /data/Runs/20200514_ctrl-metag-16s-blasto/16s/3_FASTQ_CLEAN_TRIMMOMATIC/16S-L00258931-16S_R2_PAIR.fastq.gz 2>&1 | tee L00258931_merge.log
-
-L00258931.extendedFrags.fastq.gz
-L00258931.notCombined_1.fastq.gz
-L00258931.notCombined_2.fastq.gz
-
-
-smalt index -k 20 -s 4 ref.fasta  ref.fasta
-
-smalt map -f sam -l pe -i 500  -o res2.sam ref.fasta L00258931.notCombined_1.fastq.gz  L00258931.notCombined_2.fastq.gz
-smalt map -f sam  -o res.sam ref.fasta L00258931.extendedFrags.fastq.gz
-
-samtools view -bS res.sam > res.bam;samtools view -bS res2.sam  > res2.bam
-samtools merge -h res.sam  out.bam res.bam  res2.bam
-
-
-TODO CLEAN
-
+Eric Fournier 2020-05-28
 COM
 
 green_message="\e[32m"
@@ -123,14 +102,14 @@ map(){
       cmd_bam_sort="samtools sort ${prefix_map}_merge.bam ${prefix_map}_sort"
       eval ${cmd_bam_sort}
 
-      cmd_bam_index="samtools index ${prefix_map}_merge_sort.bam"
+      cmd_bam_index="samtools index ${prefix_map}_sort.bam"
       eval ${cmd_bam_index}
 
-      MAPPED_READS=$(samtools view -c -F 260 ${prefix_map}_merge_sort.bam)
-      TOTAL_READS=$(expr ${MAPPED_READS} + $(samtools view -c -f 4 ${prefix_map}_merge_sort.bam))
+      MAPPED_READS=$(samtools view -c -F 260 ${prefix_map}_sort.bam)
+      TOTAL_READS=$(expr ${MAPPED_READS} + $(samtools view -c -f 4 ${prefix_map}_sort.bam))
       PERCENT_MAP=$(echo "scale=4;(${MAPPED_READS}/${TOTAL_READS})*100" | bc -l)
 
-      cmd_bedtools="bedtools genomecov -ibam ${prefix_map}_merge_sort.bam -bg | awk '\$4 > ${MIN_BEDTOOLS_COV}' | sort -n -k 4 > ${prefix_map}_bedgraph_sort_by_cov.txt; sort -n -k 3 ${prefix_map}_bedgraph_sort_by_cov.txt > ${prefix_map}_bedgraph_sort_by_position.txt"
+      cmd_bedtools="bedtools genomecov -ibam ${prefix_map}_sort.bam -bg | awk '\$4 > ${MIN_BEDTOOLS_COV}' | sort -n -k 4 > ${prefix_map}_bedgraph_sort_by_cov.txt; sort -n -k 3 ${prefix_map}_bedgraph_sort_by_cov.txt > ${prefix_map}_bedgraph_sort_by_position.txt"
 
       eval ${cmd_bedtools}
 
@@ -144,7 +123,7 @@ map(){
 
 clean(){
 
-  clean *.sam *.fastq.gz  *_unpaired.bam *_paired.bam *_merge.bam
+  rm *.sam *.fastq.gz  *_unpaired.bam *_paired.bam *_merge.bam
 
 }
 
