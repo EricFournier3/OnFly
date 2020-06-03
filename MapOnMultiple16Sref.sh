@@ -34,7 +34,7 @@ get_ref(){
 	for ref in "${ref_list[@]}"
 	  do
 	  ref_fasta=${ref/ /_}".fna"
-	  seqkit grep -r -n -p  "${ref}" ${bact_16s_db} | seqkit head -n 1 >> ${ref_fasta}
+	  seqkit grep -r -n -p  "${ref}" ${bact_16s_db} | seqkit head -n 1 > ${ref_fasta}
 	  ref_list_+=(${ref_fasta})
 	done
 
